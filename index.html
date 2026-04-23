@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Room Tracker · Split & Settle</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: linear-gradient(145deg, #f0f6fd 0%, #e3edf7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        #app {
+            width: 100%;
+            max-width: 1000px;
+        }
+        .auth-card {
+            max-width: 480px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 28px 22px;
+            box-shadow: 0 30px 50px -12px rgba(0, 20, 40, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: rgba(0, 0, 0, 0.03);
+            padding: 6px;
+            border-radius: 60px;
+        }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            color: #3a5b74;
+            transition: 0.2s;
+        }
+        .auth-tab.active {
+            background: white;
+            color: #1e4e63;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+        }
+        .auth-form.hidden {
+            display: none;
+        }
+        .auth-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a3b4e;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #2b4e64;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #cbdae6;
+            border-radius: 28px;
+            background: white;
+            font-size: 1rem;
+            outline: none;
+        }
+        .btn-primary {
+            background: #1e4e63;
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 8px 14px rgba(30, 78, 99, 0.2);
+            font-size: 1rem;
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #eef2fa;
+            color: #1e4e63;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .setup-container {
+            max-width: 560px;
+            margin: 12px auto;
+            background: white;
+            border-radius: 32px;
+            padding: 24px 20px;
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.08);
+        }
+        .setup-header {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a3b4e;
+            margin-bottom: 8px;
+        }
+        .member-setup-list {
+            margin: 20px 0;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .setup-member-item {
+            background: #f3f9ff;
+            padding: 14px 18px;
+            border-radius: 40px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #cde3f0;
+        }
+        .add-member-row {
+            display: flex;
+            gap: 8px;
+            margin: 18px 0;
+        }
+        .add-member-row input {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 40px;
+            border: 1.5px solid #cbdae6;
+            font-size: 1rem;
+        }
+        .tracker-container {
+            display: none;
+        }
+        .tracker-card {
+            background: white;
+            border-radius: 32px;
+            padding: 20px 16px;
+            box-shadow: 0 20px 35px -6px rgba(0, 20, 40, 0.12);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .menu-btn {
+            background: #ecf2f9;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 14px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: #1e3a5f;
+            position: relative;
+        }
+        .menu-dropdown {
+            position: absolute;
+            top: 55px;
+            left: 0;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+            min-width: 210px;
+            z-index: 50;
+            display: none;
+            border: 1px solid #e0eaf4;
+            overflow: hidden;
+        }
+        .menu-dropdown.show {
+            display: block;
+        }
+        .menu-item {
+            padding: 14px 18px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #1e3a5f;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .menu-item:hover {
+            background: #f0f7ff;
+        }
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #192841;
+            background: #ecf2f9;
+            padding: 6px 16px;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge {
+            background: #dae5f0;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .total-section {
+            background: #f0f5fd;
+            border-radius: 24px;
+            padding: 16px 18px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e0eaf4;
+        }
+        .total-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #3e5570;
+            text-transform: uppercase;
+        }
+        .total-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f263f;
+        }
+        .add-panel {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 18px 16px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.02);
+            border: 1px solid #e5ecf3;
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #25415d;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .form-group {
+            flex: 1 1 140px;
+        }
+        .form-group label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #547190;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: white;
+            border: 1.5px solid #e1eaf1;
+            border-radius: 40px;
+            font-size: 1rem;
+        }
+        .payer-group {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        .payer-btn {
+            padding: 10px 16px;
+            background: white;
+            border: 2px solid #cbd9ea;
+            border-radius: 40px;
+            font-weight: 600;
+            color: #1f3a5e;
+            cursor: pointer;
+            transition: 0.15s;
+            font-size: 0.9rem;
+        }
+        .payer-btn.active {
+            background: #1e3a5f;
+            color: white;
+            border-color: #1e3a5f;
+        }
+        .category-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0 16px;
+        }
+        .chip {
+            background: #f2f6fb;
+            border: 1.5px solid #dce6f2;
+            border-radius: 40px;
+            padding: 8px 14px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .chip.selected {
+            background: #1e3a5f;
+            color: white;
+            border-color: #1e3a5f;
+        }
+        .other-custom {
+            display: none;
+            margin: 8px 0;
+        }
+        .other-custom input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 40px;
+            border: 1.5px solid #dce6f2;
+            font-size: 0.95rem;
+        }
+        .receipt-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f4f9ff;
+            border-radius: 60px;
+            padding: 8px 8px 8px 16px;
+            border: 1px dashed #9db9d9;
+            margin: 12px 0;
+        }
+        .receipt-btn {
+            background: white;
+            border: 1px solid #b6cee8;
+            border-radius: 60px;
+            padding: 8px 16px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .save-btn {
+            background: #1e3a5f;
+            border: none;
+            border-radius: 60px;
+            padding: 16px;
+            width: 100%;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .save-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .recent-section {
+            margin-bottom: 20px;
+        }
+        .recent-list {
+            list-style: none;
+            background: #fbfdff;
+            border-radius: 20px;
+            padding: 8px 6px;
+            border: 1px solid #e9f0f8;
+        }
+        .recent-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 10px;
+            border-bottom: 1px solid #eef4fa;
+        }
+        .recent-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .date-badge {
+            background: linear-gradient(145deg, #e8f0fe, #d9e6f5);
+            border-radius: 18px;
+            padding: 6px 12px;
+            text-align: center;
+            min-width: 60px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .date-badge .day {
+            font-size: 1.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            color: #1e3a5f;
+        }
+        .date-badge .month {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #436684;
+        }
+        .recent-desc {
+            font-weight: 600;
+            color: #1a3b4e;
+            font-size: 1rem;
+        }
+        .recent-amount {
+            font-weight: 700;
+            background: #e2ecf9;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            color: #0f263f;
+        }
+        .profile-row {
+            display: flex;
+            justify-content: space-around;
+            background: #f2f8ff;
+            border-radius: 60px;
+            padding: 16px 8px;
+            margin: 24px 0;
+        }
+        .profile-icon {
+            text-align: center;
+            cursor: pointer;
+        }
+        .profile-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #3b71ca;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin: 0 auto 6px;
+            color: #1e3a5f;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.05);
+        }
+        .profile-name {
+            font-weight: 700;
+            color: #1a3b4e;
+            background: #e0ebf7;
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+        .history-panel {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 18px 14px;
+            border: 1px solid #e2ebf5;
+            margin-top: 16px;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #eef4fa;
+        }
+        .history-datetime {
+            background: #f4f9ff;
+            border-radius: 20px;
+            padding: 8px 14px;
+            min-width: 80px;
+            text-align: center;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02), 0 2px 4px rgba(0, 0, 0, 0.02);
+            border: 1px solid #e2ecf5;
+        }
+        .history-datetime .date {
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: #1e3a5f;
+        }
+        .history-datetime .time {
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #55728b;
+        }
+        .history-desc {
+            font-weight: 600;
+            color: #1e3a5f;
+            margin-left: 12px;
+            flex: 1;
+        }
+        .history-amount {
+            font-weight: 700;
+            background: #1e3a5f;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }
+        .monthly-panel {
+            margin-top: 20px;
+            background: #f8fafd;
+            border-radius: 24px;
+            padding: 18px 14px;
+        }
+        .monthly-title {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5a7a 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .monthly-title i {
+            background: #1e3a5f;
+            color: white;
+            padding: 10px;
+            border-radius: 16px;
+            font-size: 1.1rem;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+        .modal-card {
+            background: white;
+            border-radius: 32px;
+            padding: 24px 20px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.2);
+        }
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a3b4e;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8fafd;
+            z-index: 2000;
+            padding: 20px 16px;
+            overflow-y: auto;
+            display: none;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .admin-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a3b4e;
+        }
+        .delete-restart-btn {
+            background: #c44545;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 12px 20px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .admin-expense-item {
+            background: white;
+            border-radius: 20px;
+            padding: 14px 16px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #e5ecf3;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .admin-expense-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .admin-expense-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .admin-edit-btn {
+            background: #eef2fa;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #1e4e63;
+        }
+        .admin-delete-btn {
+            background: #ffe8e8;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #c44;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0eaf4;
+            border-top-color: #1e4e63;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e3a5f;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            z-index: 3000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            .tracker-card {
+                padding: 16px 10px;
+            }
+            .header h1 {
+                font-size: 1.2rem;
+                padding: 4px 10px;
+            }
+            .total-value {
+                font-size: 1.7rem;
+            }
+            .profile-circle {
+                width: 48px;
+                height: 48px;
+                font-size: 1.2rem;
+            }
+            .profile-name {
+                font-size: 0.7rem;
+                padding: 3px 8px;
+            }
+            .payer-btn {
+                padding: 8px 12px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- AUTH SCREEN -->
+        <div id="authScreen">
+            <div class="auth-card">
+                <div class="auth-tabs">
+                    <div class="auth-tab active" data-tab="signin">Sign in</div>
+                    <div class="auth-tab" data-tab="signup">Sign up</div>
+                </div>
+                <div id="signinForm" class="auth-form">
+                    <div class="auth-title">Welcome back! 👋</div>
+                    <div class="input-group"><label>Mobile number</label><input type="tel" id="loginMobile" placeholder="10-digit number" maxlength="10"></div>
+                    <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+                    <div style="display:flex; justify-content:space-between; margin:12px 0 20px;">
+                        <label><input type="checkbox" id="rememberCheck" checked> Remember me</label>
+                        <a href="#" id="forgotLink" style="color:#3a7ca5; text-decoration:none; font-weight:500;">Forgot?</a>
+                    </div>
+                    <button class="btn-primary" id="loginBtn">Sign in</button>
+                </div>
+                <div id="signupForm" class="auth-form hidden">
+                    <div class="auth-title">Create Account 🚀</div>
+                    <div class="input-group"><label>Full Name</label><input type="text" id="signupName" placeholder="Alex Rivera"></div>
+                    <div class="input-group"><label>Mobile number</label><input type="tel" id="signupMobile" maxlength="10" placeholder="10-digit"></div>
+                    <div class="input-group"><label>Password</label><input type="password" id="signupPassword" placeholder="min 6 characters"></div>
+                    <div style="margin:16px 0;"><label><input type="checkbox" id="agreeCheck"> I agree to the terms</label></div>
+                    <button class="btn-primary" id="signupBtn">Sign up</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEMBER SETUP -->
+        <div id="memberSetupScreen" style="display: none;" class="setup-container">
+            <div class="setup-header"><i class="fas fa-users"></i> Add Housemates</div>
+            <p style="margin:8px 0; color:#3b657b;">Add members who share expenses in your group.</p>
+            <div class="member-setup-list" id="setupMemberList"></div>
+            <div class="add-member-row">
+                <input type="text" id="newMemberNameInput" placeholder="e.g. Taylor">
+                <button class="btn-primary" id="addSetupMemberBtn" style="width:auto; padding:14px 24px;"><i class="fas fa-plus"></i></button>
+            </div>
+            <button class="btn-primary" id="finishSetupBtn">Continue to Tracker →</button>
+        </div>
+
+        <!-- TRACKER -->
+        <div id="trackerScreen" class="tracker-container">
+            <div class="tracker-card">
+                <div class="header">
+                    <div class="header-left">
+                        <div style="position:relative;">
+                            <button class="menu-btn" id="menuToggleBtn"><i class="fas fa-bars"></i></button>
+                            <div class="menu-dropdown" id="menuDropdown">
+                                <div class="menu-item" id="adminLoginMenu"><i class="fas fa-user-shield"></i> Admin Panel</div>
+                                <div class="menu-item" id="createUserMenu"><i class="fas fa-user-plus"></i> Create User ID</div>
+                            </div>
+                        </div>
+                        <h1><i class="fas fa-home"></i> roommate</h1>
+                    </div>
+                    <span class="badge" id="memberBadge">Housemates</span>
+                    <button id="logoutBtn" class="btn-secondary"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+
+                <div class="total-section">
+                    <span class="total-label"><i class="far fa-calendar-alt"></i> MONTHLY TOTAL</span>
+                    <span class="total-value"><span>₹</span><span id="totalSpend">0.00</span></span>
+                </div>
+
+                <div class="add-panel">
+                    <div class="section-title"><i class="fas fa-plus-circle"></i> ADD EXPENSE</div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Date</label><input type="date" id="expDate"></div>
+                        <div class="form-group"><label>Amount (₹)</label><input type="number" id="expAmount" step="0.01" placeholder="0.00"></div>
+                    </div>
+                    <label style="font-size:0.7rem; font-weight:600; color:#547190; text-transform:uppercase;">Payer</label>
+                    <div class="payer-group" id="payerGroup"></div>
+                    <label style="font-size:0.7rem; font-weight:600; color:#547190; text-transform:uppercase;">Category</label>
+                    <div class="category-chips" id="categoryChips">
+                        <span class="chip selected" data-cat="Groceries"><i class="fas fa-shopping-basket"></i> Groceries</span>
+                        <span class="chip" data-cat="Electricity"><i class="fas fa-bolt"></i> Electricity</span>
+                        <span class="chip" data-cat="Rent"><i class="fas fa-building"></i> Rent</span>
+                        <span class="chip" data-cat="Internet"><i class="fas fa-wifi"></i> Internet</span>
+                        <span class="chip" data-cat="Eating out"><i class="fas fa-utensils"></i> Eating out</span>
+                        <span class="chip" data-cat="Other"><i class="fas fa-tag"></i> Other</span>
+                    </div>
+                    <div class="other-custom" id="otherCustom"><input type="text" id="customDesc" placeholder="Description"></div>
+                    <div class="receipt-area">
+                        <span class="receipt-btn" id="uploadBtn"><i class="fas fa-cloud-upload-alt"></i> UPLOAD</span>
+                        <span id="fileName" style="font-size:0.85rem;">No file</span>
+                        <input type="file" id="receiptFile" style="display:none;" accept="image/*,.pdf">
+                    </div>
+                    <button class="save-btn" id="saveExpenseBtn"><i class="fas fa-save"></i> SAVE EXPENSE</button>
+                </div>
+
+                <div class="recent-section">
+                    <div class="section-title"><i class="far fa-clock"></i> RECENT</div>
+                    <ul class="recent-list" id="recentList"></ul>
+                </div>
+
+                <div class="profile-row" id="profileRow"></div>
+
+                <div class="history-panel">
+                    <div class="history-header">
+                        <h3 style="font-size:1.1rem;"><i class="far fa-user"></i> <span id="historyPerson">Profile</span></h3>
+                        <button id="closeHistoryBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                    </div>
+                    <div id="historyContent">⇧ Click any profile ⇧</div>
+                </div>
+
+                <div class="monthly-panel">
+                    <div class="monthly-title"><i class="fas fa-file-invoice"></i> MONTHLY REPORT</div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+                        <input type="month" id="reportMonth" style="padding:10px; border-radius:40px; border:1.5px solid #dce6f2;">
+                        <button id="generatePdfBtn" style="background:#1e3a5f; color:white; border:none; border-radius:60px; padding:10px 20px; font-weight:600; cursor:pointer;"><i class="fas fa-download"></i> PDF</button>
+                    </div>
+                    <div id="monthlySummary"></div>
+                    <div style="margin-top:20px;">
+                        <div class="section-title"><i class="fas fa-handshake"></i> Settlement Plan</div>
+                        <div id="settlementPlanContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODALS -->
+        <div class="modal-overlay" id="adminLoginModal">
+            <div class="modal-card">
+                <div class="modal-title"><i class="fas fa-user-shield"></i> Admin Login</div>
+                <div class="input-group"><label>Mobile</label><input type="tel" id="adminMobile" placeholder="Admin mobile"></div>
+                <div class="input-group"><label>Password</label><input type="password" id="adminPassword" placeholder="Admin password"></div>
+                <button class="btn-primary" id="adminLoginConfirmBtn">Login</button>
+                <button class="btn-primary" style="background:#aaa; margin-top:8px;" id="closeAdminLoginBtn">Cancel</button>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="createUserModal">
+            <div class="modal-card">
+                <div class="modal-title"><i class="fas fa-user-plus"></i> Create User ID</div>
+                <p style="font-size:0.85rem; color:#547190; margin-bottom:16px;">Create a login for your group member.</p>
+                <div class="input-group"><label>Mobile Number</label><input type="tel" id="newUserMobile" maxlength="10" placeholder="10-digit"></div>
+                <div class="input-group"><label>Password</label><input type="password" id="newUserPassword" placeholder="Set password"></div>
+                <button class="btn-primary" id="createUserConfirmBtn">Create ID</button>
+                <button class="btn-primary" style="background:#aaa; margin-top:8px;" id="closeCreateUserModal">Cancel</button>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="editExpenseModal">
+            <div class="modal-card">
+                <div class="modal-title"><i class="fas fa-edit"></i> Edit Expense</div>
+                <input type="hidden" id="editExpenseId">
+                <div class="input-group"><label>Date</label><input type="date" id="editExpenseDate"></div>
+                <div class="input-group"><label>Amount (₹)</label><input type="number" id="editExpenseAmount" step="0.01"></div>
+                <div class="input-group"><label>Description</label><input type="text" id="editExpenseDesc"></div>
+                <button class="btn-primary" id="saveEditExpenseBtn">Save Changes</button>
+                <button class="btn-primary" style="background:#aaa; margin-top:8px;" id="closeEditModal">Cancel</button>
+            </div>
+        </div>
+
+        <!-- ADMIN PANEL -->
+        <div class="admin-panel" id="adminPanelScreen">
+            <div class="admin-header">
+                <h2><i class="fas fa-crown"></i> Admin Portal</h2>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="delete-restart-btn" id="deleteRestartBtn"><i class="fas fa-trash-restore"></i> Delete & Restart</button>
+                    <button class="btn-secondary" id="closeAdminPanelBtn">Close</button>
+                </div>
+            </div>
+            <div id="adminContent"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            setPersistence,
+            browserLocalPersistence,
+            browserSessionPersistence
+        } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            doc,
+            getDoc,
+            setDoc,
+            addDoc,
+            updateDoc,
+            deleteDoc,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            onSnapshot,
+            serverTimestamp,
+            writeBatch,
+            limit
+        } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+        import {
+            getStorage,
+            ref,
+            uploadBytes,
+            getDownloadURL,
+            deleteObject
+        } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-storage.js";
+
+        // ---------- Firebase Config ----------
+        const firebaseConfig = {
+            apiKey: "AIzaSyAz7MmBkHeb4bTZesLZCYwrAC3-QohiGp4",
+            authDomain: "all-user-roomets.firebaseapp.com",
+            projectId: "all-user-roomets",
+            storageBucket: "all-user-roomets.firebasestorage.app",
+            messagingSenderId: "385491379895",
+            appId: "1:385491379895:web:2163bff7268177053b4f32"
+        };
+
+        // ---------- Initialize Firebase ----------
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // ---------- DOM Elements ----------
+        const authScreen = document.getElementById('authScreen');
+        const memberSetupScreen = document.getElementById('memberSetupScreen');
+        const trackerScreen = document.getElementById('trackerScreen');
+        const adminLoginModal = document.getElementById('adminLoginModal');
+        const createUserModal = document.getElementById('createUserModal');
+        const editExpenseModal = document.getElementById('editExpenseModal');
+        const adminPanelScreen = document.getElementById('adminPanelScreen');
+
+        // ---------- App State ----------
+        let currentUser = null; // Firebase Auth user
+        let currentUserData = null; // Firestore user document
+        let groupMembers = [];
+        let transactions = [];
+        let selectedPayer = '';
+        let selectedCategory = 'Groceries';
+        let unsubscribeExpenses = null;
+        let unsubscribeMembers = null;
+        let adminExpensesCache = []; // For admin panel
+
+        // ---------- Helpers ----------
+        function escapeHTML(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[c]);
+        }
+
+        function showToast(msg) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function phoneToEmail(phone) {
+            return `${phone}@roomet.app`;
+        }
+
+        // ---------- Auth Tabs ----------
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('signinForm').classList.toggle('hidden', tab.dataset.tab !==
+                    'signin');
+                document.getElementById('signupForm').classList.toggle('hidden', tab.dataset.tab !==
+                'signup');
+            });
+        });
+
+        document.getElementById('forgotLink').addEventListener('click', e => {
+            e.preventDefault();
+            alert('Contact your group admin to reset password. The admin can create a new password for you.');
+        });
+
+        // ---------- Sign In ----------
+        document.getElementById('loginBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const mobile = document.getElementById('loginMobile').value.trim();
+            const pwd = document.getElementById('loginPassword').value;
+            const remember = document.getElementById('rememberCheck').checked;
+
+            if (!mobile || !pwd) return alert('Please enter mobile number and password');
+            if (!/^\d{10}$/.test(mobile)) return alert('Enter a valid 10-digit mobile number');
+
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Signing in...';
+
+            try {
+                // Set persistence based on "Remember me"
+                await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+
+                const email = phoneToEmail(mobile);
+                await signInWithEmailAndPassword(auth, email, pwd);
+                // onAuthStateChanged will handle the rest
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Sign in';
+                if (err.code === 'auth/user-not-found') {
+                    // Check pending users
+                    const pendingRef = doc(db, 'pendingUsers', mobile);
+                    const pendingSnap = await getDoc(pendingRef);
+                    if (pendingSnap.exists() && pendingSnap.data().password === pwd) {
+                        // Create Firebase Auth account now
+                        try {
+                            const email = phoneToEmail(mobile);
+                            const cred = await createUserWithEmailAndPassword(auth, email, pwd);
+                            // Create user document
+                            const userData = {
+                                name: pendingSnap.data().name || 'User' + mobile.slice(-4),
+                                phone: mobile,
+                                groupId: pendingSnap.data().groupId,
+                                createdAt: serverTimestamp()
+                            };
+                            await setDoc(doc(db, 'users', cred.user.uid), userData);
+                            // Delete pending user
+                            await deleteDoc(pendingRef);
+                            // onAuthStateChanged will handle the rest
+                            return;
+                        } catch (innerErr) {
+                            console.error('Error creating auth account from pending:', innerErr);
+                        }
+                    }
+                }
+                alert('Invalid credentials. Please check your mobile number and password.');
+            }
+        });
+
+        // ---------- Sign Up ----------
+        document.getElementById('signupBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!document.getElementById('agreeCheck').checked) return alert('Please agree to the terms');
+            const name = document.getElementById('signupName').value.trim();
+            const mobile = document.getElementById('signupMobile').value.trim();
+            const pwd = document.getElementById('signupPassword').value;
+            if (!name || !mobile || !pwd) return alert('All fields required');
+            if (!/^\d{10}$/.test(mobile)) return alert('Enter a valid 10-digit mobile number');
+            if (pwd.length < 6) return alert('Password must be at least 6 characters');
+
+            const btn = document.getElementById('signupBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Creating account...';
+
+            try {
+                const email = phoneToEmail(mobile);
+                const cred = await createUserWithEmailAndPassword(auth, email, pwd);
+                const userData = {
+                    name,
+                    phone: mobile,
+                    groupId: cred.user.uid, // New group - user is admin
+                    createdAt: serverTimestamp()
+                };
+                await setDoc(doc(db, 'users', cred.user.uid), userData);
+                // onAuthStateChanged will handle the rest
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = 'Sign up';
+                if (err.code === 'auth/email-already-in-use') {
+                    alert('This mobile number is already registered. Please sign in instead.');
+                } else {
+                    alert('Error: ' + err.message);
+                }
+            }
+        });
+
+        // ---------- Auth State Observer ----------
+        onAuthStateChanged(auth, async (user) => {
+            // Reset listeners
+            if (unsubscribeExpenses) { unsubscribeExpenses();
+                unsubscribeExpenses = null; }
+            if (unsubscribeMembers) { unsubscribeMembers();
+                unsubscribeMembers = null; }
+
+            if (user) {
+                currentUser = user;
+                try {
+                    const userSnap = await getDoc(doc(db, 'users', user.uid));
+                    if (userSnap.exists()) {
+                        currentUserData = userSnap.data();
+                        currentUserData.uid = user.uid;
+                    } else {
+                        // Fallback: create user doc if missing
+                        currentUserData = {
+                            uid: user.uid,
+                            name: 'User',
+                            phone: '',
+                            groupId: user.uid,
+                            createdAt: new Date()
+                        };
+                        await setDoc(doc(db, 'users', user.uid), currentUserData);
+                    }
+                    authScreen.style.display = 'none';
+                    // Check if members exist
+                    const membersSnap = await getDocs(collection(db, 'groups', currentUserData.groupId,
+                        'members'));
+                    if (membersSnap.empty && currentUserData.uid === currentUserData.groupId) {
+                        showMemberSetup();
+                    } else {
+                        groupMembers = membersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        showTracker();
+                    }
+                } catch (err) {
+                    console.error('Error loading user data:', err);
+                    authScreen.style.display = 'block';
+                    currentUser = null;
+                    currentUserData = null;
+                }
+            } else {
+                currentUser = null;
+                currentUserData = null;
+                groupMembers = [];
+                transactions = [];
+                authScreen.style.display = 'block';
+                memberSetupScreen.style.display = 'none';
+                trackerScreen.style.display = 'none';
+                adminPanelScreen.style.display = 'none';
+            }
+        });
+
+        // ---------- MEMBER SETUP ----------
+        function showMemberSetup() {
+            memberSetupScreen.style.display = 'block';
+            trackerScreen.style.display = 'none';
+            adminPanelScreen.style.display = 'none';
+            renderSetupMembers();
+        }
+
+        function renderSetupMembers() {
+            const list = document.getElementById('setupMemberList');
+            if (!groupMembers.length) {
+                list.innerHTML =
+                '<div style="padding:12px; color:#6f8f9f;">➕ Add your first housemate</div>';
+                return;
+            }
+            list.innerHTML = groupMembers.map(m =>
+                `<div class="setup-member-item"><span><i class="fas fa-user"></i> ${escapeHTML(m.name)}</span><i class="fas fa-trash" style="color:#b13e3e; cursor:pointer;" data-member-id="${m.id}"></i></div>`
+            ).join('');
+            // Attach delete handlers
+            list.querySelectorAll('.fa-trash').forEach(icon => {
+                icon.addEventListener('click', async () => {
+                    const memberId = icon.dataset.memberId;
+                    await deleteDoc(doc(db, 'groups', currentUserData.groupId, 'members',
+                        memberId));
+                    groupMembers = groupMembers.filter(m => m.id !== memberId);
+                    renderSetupMembers();
+                });
+            });
+        }
+
+        document.getElementById('addSetupMemberBtn').addEventListener('click', async () => {
+            const name = document.getElementById('newMemberNameInput').value.trim();
+            if (!name) return alert('Enter a name');
+            if (groupMembers.some(m => m.name.toLowerCase() === name.toLowerCase())) return alert(
+                'Member already exists');
+            const memberRef = await addDoc(collection(db, 'groups', currentUserData.groupId, 'members'), {
+                name,
+                addedAt: serverTimestamp()
+            });
+            groupMembers.push({ id: memberRef.id, name });
+            document.getElementById('newMemberNameInput').value = '';
+            renderSetupMembers();
+        });
+
+        document.getElementById('finishSetupBtn').addEventListener('click', () => {
+            if (!groupMembers.length) return alert('Add at least one member');
+            showTracker();
+        });
+
+        // ---------- TRACKER ----------
+        function showTracker() {
+            memberSetupScreen.style.display = 'none';
+            trackerScreen.style.display = 'block';
+            adminPanelScreen.style.display = 'none';
+            document.getElementById('expDate').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('reportMonth').value = new Date().toISOString().slice(0, 7);
+            setupRealtimeListeners();
+            updateUIFromMembers();
+        }
+
+        function setupRealtimeListeners() {
+            // Unsubscribe previous listeners
+            if (unsubscribeExpenses) { unsubscribeExpenses();
+                unsubscribeExpenses = null; }
+            if (unsubscribeMembers) { unsubscribeMembers();
+                unsubscribeMembers = null; }
+
+            const groupId = currentUserData.groupId;
+
+            // Listen to members
+            const membersQuery = query(collection(db, 'groups', groupId, 'members'), orderBy('addedAt', 'asc'));
+            unsubscribeMembers = onSnapshot(membersQuery, (snapshot) => {
+                groupMembers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                updateUIFromMembers();
+                updateSettlement();
+            }, (err) => {
+                console.error('Members listener error:', err);
+            });
+
+            // Listen to expenses
+            const expensesQuery = query(collection(db, 'groups', groupId, 'expenses'), orderBy('timestamp',
+            'desc'));
+            unsubscribeExpenses = onSnapshot(expensesQuery, (snapshot) => {
+                transactions = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                updateTotalAndRecent();
+                updateMonthlySummary();
+                updateSettlement();
+            }, (err) => {
+                console.error('Expenses listener error:', err);
+            });
+        }
+
+        function updateUIFromMembers() {
+            renderPayerButtons();
+            renderProfileRow();
+            updateBadge();
+            if (groupMembers.length > 0 && !selectedPayer) {
+                selectedPayer = groupMembers[0].name;
+                const firstBtn = document.querySelector('.payer-btn');
+                if (firstBtn) firstBtn.classList.add('active');
+            }
+        }
+
+        function renderPayerButtons() {
+            const group = document.getElementById('payerGroup');
+            if (!groupMembers.length) {
+                group.innerHTML = '<span style="color:#99b6d3; padding:8px;">Add members first</span>';
+                return;
+            }
+            group.innerHTML = groupMembers.map(m =>
+                `<span class="payer-btn${selectedPayer === m.name ? ' active' : ''}" data-payer="${escapeHTML(m.name)}">${escapeHTML(m.name)}</span>`
+            ).join('');
+            if (!selectedPayer && groupMembers.length) {
+                selectedPayer = groupMembers[0].name;
+                const firstBtn = group.querySelector('.payer-btn');
+                if (firstBtn) firstBtn.classList.add('active');
+            }
+            group.querySelectorAll('.payer-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    group.querySelectorAll('.payer-btn').forEach(b => b.classList.remove(
+                        'active'));
+                    this.classList.add('active');
+                    selectedPayer = this.dataset.payer;
+                });
+            });
+        }
+
+        function renderProfileRow() {
+            const row = document.getElementById('profileRow');
+            if (!groupMembers.length) {
+                row.innerHTML =
+                '<div style="text-align:center; width:100%; color:#99b6d3;">No housemates yet</div>';
+                return;
+            }
+            row.innerHTML = groupMembers.map(m =>
+                `<div class="profile-icon" data-person="${escapeHTML(m.name)}"><div class="profile-circle">${m.name.charAt(0).toUpperCase()}</div><div class="profile-name">${m.name}</div></div>`
+            ).join('');
+            row.querySelectorAll('.profile-icon').forEach(i => i.addEventListener('click', () => showHistory(i
+                .dataset.person)));
+        }
+
+        function updateBadge() {
+            document.getElementById('memberBadge').innerHTML = groupMembers.length ?
+                groupMembers.map(m => m.name).join(' · ') :
+                'No members';
+        }
+
+        function updateTotalAndRecent() {
+            document.getElementById('totalSpend').textContent = transactions.reduce((s, t) => s + (t.amount || 0), 0)
+                .toFixed(2);
+            const list = document.getElementById('recentList');
+            if (!transactions.length) {
+                list.innerHTML =
+                '<div style="padding:16px; text-align:center; color:#99b6d3;">✨ No expenses yet</div>';
+                return;
+            }
+            const sorted = [...transactions].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)).slice(0, 5);
+            list.innerHTML = sorted.map(t => {
+                const d = new Date(t.date + 'T12:00');
+                const receiptIndicator = t.receiptUrl ?
+                    ' <a href="' + escapeHTML(t.receiptUrl) +
+                    '" target="_blank" title="View receipt">📎</a>' :
+                    (t.receipt ? ' 📎' : '');
+                return `<li class="recent-item">
+                    <div class="recent-left">
+                        <div class="date-badge"><div class="day">${d.getDate()}</div><div class="month">${d.toLocaleString('default',{month:'short'})}</div></div>
+                        <span class="recent-desc">${escapeHTML(t.description)}${receiptIndicator}</span>
+                    </div>
+                    <span class="recent-amount">₹${(t.amount || 0).toFixed(2)}</span>
+                </li>`;
+            }).join('');
+        }
+
+        function showHistory(personName) {
+            document.getElementById('historyPerson').textContent = personName;
+            const filtered = transactions.filter(t => t.paidBy === personName).sort((a, b) => new Date(b.date) -
+                new Date(a.date));
+            const content = document.getElementById('historyContent');
+            if (!filtered.length) {
+                content.innerHTML =
+                    `<div style="padding:16px; color:#a3bbd5;">😕 No expenses by ${escapeHTML(personName)}</div>`;
+                return;
+            }
+            content.innerHTML =
+                `<div style="margin-bottom:12px; font-weight:600;">💰 Total ₹${filtered.reduce((s,t)=>s+(t.amount||0),0).toFixed(2)}</div>` +
+                filtered.map(t => {
+                    const d = new Date(t.date + 'T12:00');
+                    const timeStr = t.timestamp ? new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit',
+                        minute: '2-digit' }) : '';
+                    const receiptLink = t.receiptUrl ?
+                        ` <a href="${escapeHTML(t.receiptUrl)}" target="_blank" style="font-size:0.8rem;">📎</a>` :
+                        '';
+                    return `<div class="history-item">
+                        <div class="history-datetime"><div class="date">${d.getDate()} ${d.toLocaleString('default',{month:'short'})}</div><div class="time">${timeStr||'—'}</div></div>
+                        <span class="history-desc">${escapeHTML(t.description)}${receiptLink}</span>
+                        <span class="history-amount">₹${(t.amount||0).toFixed(2)}</span>
+                    </div>`;
+                }).join('');
+        }
+
+        document.getElementById('closeHistoryBtn').addEventListener('click', () => {
+            document.getElementById('historyPerson').textContent = 'Profile';
+            document.getElementById('historyContent').innerHTML = '⇧ Click any profile ⇧';
+        });
+
+        // ---------- ADD EXPENSE ----------
+        document.getElementById('saveExpenseBtn').addEventListener('click', async () => {
+            const date = document.getElementById('expDate').value;
+            const amount = parseFloat(document.getElementById('expAmount').value);
+            let desc = selectedCategory;
+            if (selectedCategory === 'Other') {
+                desc = document.getElementById('customDesc').value.trim();
+                if (!desc) return alert('Enter a description for Other category');
+            }
+            if (!date || isNaN(amount) || amount <= 0) return alert('Enter a valid date and amount');
+            if (!selectedPayer) return alert('Select a payer');
+            if (!groupMembers.length) return alert('Add at least one member first');
+
+            const btn = document.getElementById('saveExpenseBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+            try {
+                const expenseData = {
+                    date,
+                    amount,
+                    description: desc,
+                    paidBy: selectedPayer,
+                    receipt: '',
+                    receiptUrl: '',
+                    timestamp: Date.now()
+                };
+
+                // Handle receipt upload
+                const fileInput = document.getElementById('receiptFile');
+                if (fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const storageRef = ref(storage,
+                        `receipts/${currentUserData.groupId}/${Date.now()}_${file.name}`);
+                    const uploadResult = await uploadBytes(storageRef, file);
+                    const downloadURL = await getDownloadURL(uploadResult.ref);
+                    expenseData.receipt = file.name;
+                    expenseData.receiptUrl = downloadURL;
+                }
+
+                await addDoc(collection(db, 'groups', currentUserData.groupId, 'expenses'), expenseData);
+
+                // Reset form
+                document.getElementById('expAmount').value = '';
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+                document.querySelector('.chip[data-cat="Groceries"]')?.classList.add('selected');
+                selectedCategory = 'Groceries';
+                document.getElementById('otherCustom').style.display = 'none';
+                document.getElementById('customDesc').value = '';
+                document.getElementById('receiptFile').value = '';
+                document.getElementById('fileName').textContent = 'No file';
+                showToast('✅ Expense saved!');
+            } catch (err) {
+                console.error('Error saving expense:', err);
+                alert('Error saving expense: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> SAVE EXPENSE';
+            }
+        });
+
+        // ---------- CATEGORY CHIPS ----------
+        document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', function() {
+            document.querySelectorAll('.chip').forEach(ch => ch.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedCategory = this.dataset.cat;
+            document.getElementById('otherCustom').style.display = selectedCategory === 'Other' ? 'block' :
+                'none';
+        }));
+
+        // ---------- UPLOAD ----------
+        document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('receiptFile')
+            .click());
+        document.getElementById('receiptFile').addEventListener('change', e => document.getElementById('fileName')
+            .textContent = e.target.files[0]?.name || 'No file');
+
+        // ---------- MONTHLY & SETTLEMENT ----------
+        function updateMonthlySummary() {
+            const reportMonthVal = document.getElementById('reportMonth').value;
+            if (!reportMonthVal) return;
+            const [y, m] = reportMonthVal.split('-').map(Number);
+            const filtered = transactions.filter(t => {
+                const [yy, mm] = t.date.split('-').map(Number);
+                return yy === y && mm === m;
+            });
+            const div = document.getElementById('monthlySummary');
+            if (!filtered.length) {
+                div.innerHTML = '<span style="color:#99b6d3;">No expenses this month</span>';
+                return;
+            }
+            const totals = {};
+            filtered.forEach(t => totals[t.paidBy] = (totals[t.paidBy] || 0) + (t.amount || 0));
+            div.innerHTML = Object.entries(totals).map(([p, amt]) =>
+                `<span style="background:#e2ecf9; border-radius:40px; padding:4px 14px; margin:4px; display:inline-block;"><strong>${escapeHTML(p)}</strong> ₹${amt.toFixed(2)}</span>`
+            ).join('') +
+                `<span style="background:#1e3a5f; color:white; border-radius:40px; padding:4px 14px; margin:4px; display:inline-block;"><strong>total</strong> ₹${filtered.reduce((s,t)=>s+(t.amount||0),0).toFixed(2)}</span>`;
+        }
+
+        function updateSettlement() {
+            const reportMonthVal = document.getElementById('reportMonth').value;
+            if (!reportMonthVal) return;
+            const [y, m] = reportMonthVal.split('-').map(Number);
+            const filtered = transactions.filter(t => {
+                const [yy, mm] = t.date.split('-').map(Number);
+                return yy === y && mm === m;
+            });
+            const div = document.getElementById('settlementPlanContent');
+            if (!filtered.length) {
+                div.innerHTML = '<div style="color:#99b6d3;">No expenses to settle</div>';
+                return;
+            }
+            const persons = [...new Set(filtered.map(t => t.paidBy))];
+            if (persons.length === 0) {
+                div.innerHTML = '<div style="color:#99b6d3;">No payers found</div>';
+                return;
+            }
+            const paid = {};
+            persons.forEach(p => paid[p] = 0);
+            let total = 0;
+            filtered.forEach(t => { paid[t.paidBy] = (paid[t.paidBy] || 0) + (t.amount || 0);
+                total += (t.amount || 0); });
+            const share = total / persons.length;
+            const net = persons.map(p => ({ person: p, net: (paid[p] || 0) - share }));
+            const debtors = net.filter(n => n.net < -0.01).map(n => ({ person: n.person, amount: -n.net }));
+            const creditors = net.filter(n => n.net > 0.01).map(n => ({ person: n.person, amount: n.net }));
+            let transfers = [],
+                i = 0,
+                j = 0;
+            while (i < debtors.length && j < creditors.length) {
+                let d = debtors[i],
+                    c = creditors[j],
+                    amt = Math.min(d.amount, c.amount);
+                if (amt > 0) transfers.push({ from: d.person, to: c.person, amount: amt });
+                d.amount -= amt;
+                c.amount -= amt;
+                if (d.amount < 0.01) i++;
+                if (c.amount < 0.01) j++;
+            }
+            let html =
+                `<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">${net.map(n => `<span style="background:#f0f5fd; border-radius:40px; padding:4px 12px;"><strong>${escapeHTML(n.person)}</strong> ${n.net>0?'+'+(n.net).toFixed(2):(n.net).toFixed(2)}</span>`).join('')}</div>`;
+            html +=
+                `<div style="font-size:0.85rem; color:#547190;">Total ₹${total.toFixed(2)} | Equal share ₹${share.toFixed(2)} per person</div>`;
+            if (transfers.length) {
+                html += '<ul style="list-style:none; margin-top:10px;">' + transfers.map(t =>
+                    `<li style="padding:6px 0;"><i class="fas fa-exchange-alt" style="color:#3f6ab3;"></i> <strong>${escapeHTML(t.from)}</strong> pays <strong>${escapeHTML(t.to)}</strong> ₹${t.amount.toFixed(2)}</li>`
+                ).join('') + '</ul>';
+            } else {
+                html += '<div style="color:#2e7d32; margin-top:8px;">✓ All settled up!</div>';
+            }
+            div.innerHTML = html;
+        }
+
+        document.getElementById('reportMonth').addEventListener('change', () => {
+            updateMonthlySummary();
+            updateSettlement();
+        });
+
+        // ---------- PDF ----------
+        document.getElementById('generatePdfBtn').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const reportMonthVal = document.getElementById('reportMonth').value;
+            if (!reportMonthVal) return alert('Select a month');
+            const [y, m] = reportMonthVal.split('-');
+            const filtered = transactions.filter(t => t.date.startsWith(`${y}-${m}`));
+            if (!filtered.length) return alert('No data for this month');
+            doc.text(`Roommate Expenses - ${m}/${y}`, 14, 20);
+            doc.autoTable({
+                startY: 30,
+                head: [
+                    ['Date', 'Description', 'Paid by', 'Amount']
+                ],
+                body: filtered.map(t => [t.date, t.description, t.paidBy, '₹' + (t.amount || 0).toFixed(2)])
+            });
+            doc.save(`expenses_${y}_${m}.pdf`);
+        });
+
+        // ---------- LOGOUT ----------
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            if (unsubscribeExpenses) { unsubscribeExpenses();
+                unsubscribeExpenses = null; }
+            if (unsubscribeMembers) { unsubscribeMembers();
+                unsubscribeMembers = null; }
+            await signOut(auth);
+            // onAuthStateChanged will reset the UI
+        });
+
+        // ---------- MENU DROPDOWN ----------
+        const menuBtn = document.getElementById('menuToggleBtn'),
+            menuDropdown = document.getElementById('menuDropdown');
+        menuBtn.addEventListener('click', e => { e.stopPropagation();
+            menuDropdown.classList.toggle('show'); });
+        document.addEventListener('click', () => menuDropdown.classList.remove('show'));
+
+        // ---------- ADMIN PANEL ACCESS ----------
+        document.getElementById('adminLoginMenu').addEventListener('click', () => {
+            menuDropdown.classList.remove('show');
+            if (!currentUserData) return alert('Please sign in first');
+            if (currentUserData.uid === currentUserData.groupId) {
+                // Current user is admin, open directly
+                openAdminPanel();
+            } else {
+                // Show admin login modal for re-auth
+                document.getElementById('adminLoginModal').style.display = 'flex';
+            }
+        });
+
+        document.getElementById('closeAdminLoginBtn').addEventListener('click', () => adminLoginModal.style.display =
+            'none');
+
+        document.getElementById('adminLoginConfirmBtn').addEventListener('click', async () => {
+            const mobile = document.getElementById('adminMobile').value.trim();
+            const pwd = document.getElementById('adminPassword').value;
+            if (!mobile || !pwd) return alert('Enter admin credentials');
+
+            const btn = document.getElementById('adminLoginConfirmBtn');
+            btn.disabled = true;
+            btn.textContent = 'Verifying...';
+
+            try {
+                const email = phoneToEmail(mobile);
+                const cred = await signInWithEmailAndPassword(auth, email, pwd);
+                const userSnap = await getDoc(doc(db, 'users', cred.user.uid));
+                if (userSnap.exists() && userSnap.data().groupId === cred.user.uid) {
+                    // Is admin
+                    currentUser = cred.user;
+                    currentUserData = { uid: cred.user.uid, ...userSnap.data() };
+                    adminLoginModal.style.display = 'none';
+                    openAdminPanel();
+                } else {
+                    alert('This user is not a group admin.');
+                    // Sign back out if we switched users
+                    if (currentUser && currentUser.uid !== cred.user.uid) {
+                        await signOut(auth);
+                    }
+                }
+            } catch (err) {
+                alert('Invalid admin credentials');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Login';
+            }
+        });
+
+        async function openAdminPanel() {
+            adminPanelScreen.style.display = 'block';
+            await loadAdminExpenses();
+        }
+
+        async function loadAdminExpenses() {
+            const groupId = currentUserData.groupId;
+            const q = query(collection(db, 'groups', groupId, 'expenses'), orderBy('timestamp', 'desc'));
+            const snapshot = await getDocs(q);
+            adminExpensesCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderAdminContent();
+        }
+
+        function renderAdminContent() {
+            const content = document.getElementById('adminContent');
+            if (!adminExpensesCache.length) {
+                content.innerHTML =
+                    '<div style="text-align:center; padding:40px; color:#99b6d3;">No expenses in this group yet.</div>';
+                return;
+            }
+            content.innerHTML = adminExpensesCache.map(exp => `
+                <div class="admin-expense-item">
+                    <div class="admin-expense-info">
+                        <div class="date-badge" style="min-width:55px;"><div class="day">${new Date(exp.date+'T12:00').getDate()}</div><div class="month">${new Date(exp.date+'T12:00').toLocaleString('default',{month:'short'})}</div></div>
+                        <div><strong>${escapeHTML(exp.description)}</strong><br><small style="color:#547190;">Paid by: ${escapeHTML(exp.paidBy)} | ₹${(exp.amount||0).toFixed(2)}</small></div>
+                    </div>
+                    <div class="admin-expense-actions">
+                        <button class="admin-edit-btn" data-exp-id="${exp.id}"><i class="fas fa-edit"></i></button>
+                        <button class="admin-delete-btn" data-exp-id="${exp.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Attach event listeners
+            content.querySelectorAll('.admin-edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const expId = btn.dataset.expId;
+                    const exp = adminExpensesCache.find(e => e.id === expId);
+                    if (exp) openEditExpense(exp);
+                });
+            });
+            content.querySelectorAll('.admin-delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const expId = btn.dataset.expId;
+                    adminDeleteExpense(expId);
+                });
+            });
+        }
+
+        function openEditExpense(exp) {
+            document.getElementById('editExpenseId').value = exp.id;
+            document.getElementById('editExpenseDate').value = exp.date;
+            document.getElementById('editExpenseAmount').value = exp.amount;
+            document.getElementById('editExpenseDesc').value = exp.description;
+            editExpenseModal.dataset.groupId = currentUserData.groupId;
+            editExpenseModal.style.display = 'flex';
+        }
+
+        document.getElementById('saveEditExpenseBtn').addEventListener('click', async () => {
+            const groupId = editExpenseModal.dataset.groupId;
+            const expId = document.getElementById('editExpenseId').value;
+            const date = document.getElementById('editExpenseDate').value;
+            const amount = parseFloat(document.getElementById('editExpenseAmount').value);
+            const desc = document.getElementById('editExpenseDesc').value.trim();
+            if (!date || isNaN(amount) || amount <= 0 || !desc) return alert('All fields required');
+
+            const btn = document.getElementById('saveEditExpenseBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                await updateDoc(doc(db, 'groups', groupId, 'expenses', expId), {
+                    date,
+                    amount,
+                    description: desc,
+                    timestamp: Date.now()
+                });
+                editExpenseModal.style.display = 'none';
+                await loadAdminExpenses();
+                showToast('✅ Expense updated!');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            }
+        });
+
+        document.getElementById('closeEditModal').addEventListener('click', () => editExpenseModal.style.display =
+            'none');
+
+        async function adminDeleteExpense(expId) {
+            if (!confirm('Delete this expense? This cannot be undone.')) return;
+            try {
+                // Check if there's a receipt to delete from storage
+                const exp = adminExpensesCache.find(e => e.id === expId);
+                if (exp && exp.receiptUrl) {
+                    try {
+                        const receiptRef = ref(storage, exp.receiptUrl);
+                        await deleteObject(receiptRef);
+                    } catch (storageErr) {
+                        console.warn('Could not delete receipt from storage:', storageErr);
+                    }
+                }
+                await deleteDoc(doc(db, 'groups', currentUserData.groupId, 'expenses', expId));
+                await loadAdminExpenses();
+                showToast('🗑️ Expense deleted');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        document.getElementById('deleteRestartBtn').addEventListener('click', async () => {
+            if (!confirm(
+                    '⚠️ This will DELETE ALL expenses for this group. This cannot be undone. Continue?')) return;
+            const groupId = currentUserData.groupId;
+            const snapshot = await getDocs(collection(db, 'groups', groupId, 'expenses'));
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(d => batch.delete(d.ref));
+            // Also try to delete receipts from storage (best effort)
+            for (const d of snapshot.docs) {
+                const data = d.data();
+                if (data.receiptUrl) {
+                    try {
+                        const receiptRef = ref(storage, data.receiptUrl);
+                        await deleteObject(receiptRef);
+                    } catch (e) { /* ignore */ }
+                }
+            }
+            await batch.commit();
+            await loadAdminExpenses();
+            showToast('🗑️ All expenses deleted');
+        });
+
+        document.getElementById('closeAdminPanelBtn').addEventListener('click', () => adminPanelScreen.style.display =
+            'none');
+
+        // ---------- CREATE USER ID ----------
+        document.getElementById('createUserMenu').addEventListener('click', () => {
+            menuDropdown.classList.remove('show');
+            if (!currentUserData || currentUserData.uid !== currentUserData.groupId) {
+                return alert('Only the group admin can create user IDs.');
+            }
+            document.getElementById('createUserModal').style.display = 'flex';
+        });
+
+        document.getElementById('closeCreateUserModal').addEventListener('click', () => createUserModal.style.display =
+            'none');
+
+        document.getElementById('createUserConfirmBtn').addEventListener('click', async () => {
+            const mobile = document.getElementById('newUserMobile').value.trim();
+            const pwd = document.getElementById('newUserPassword').value;
+            if (!mobile || !pwd) return alert('Enter mobile number and password');
+            if (!/^\d{10}$/.test(mobile)) return alert('Enter a valid 10-digit mobile number');
+            if (pwd.length < 6) return alert('Password must be at least 6 characters');
+
+            const btn = document.getElementById('createUserConfirmBtn');
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+
+            try {
+                // Check if mobile already registered
+                const existingEmail = phoneToEmail(mobile);
+                const existingSnap = await getDoc(doc(db, 'pendingUsers', mobile));
+                if (existingSnap.exists()) return alert('This mobile number already has a pending invitation.');
+
+                // Check Firebase Auth (by trying to fetch user doc - we can't list users from client)
+                // Store as pending user - will be activated on first sign-in
+                await setDoc(doc(db, 'pendingUsers', mobile), {
+                    name: 'User' + mobile.slice(-4),
+                    phone: mobile,
+                    password: pwd,
+                    groupId: currentUserData.groupId,
+                    createdBy: currentUserData.uid,
+                    createdAt: serverTimestamp()
+                });
+
+                document.getElementById('newUserMobile').value = '';
+                document.getElementById('newUserPassword').value = '';
+                createUserModal.style.display = 'none';
+                showToast(
+                    '✅ User ID created! They can sign in with:\nMobile: ' + mobile + '\nPassword: ' + pwd);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Create ID';
+            }
+        });
+
+        // ---------- INITIAL LOAD HANDLED BY onAuthStateChanged ----------
+        console.log('🔥 Firebase Room Tracker ready');
+        console.log('   Project:', firebaseConfig.projectId);
+    </script>
+</body>
+</html>
